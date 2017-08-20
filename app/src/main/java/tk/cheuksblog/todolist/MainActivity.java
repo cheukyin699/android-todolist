@@ -4,6 +4,7 @@ import android.content.DialogInterface;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AlertDialog;
 import android.view.ContextMenu;
 import android.view.MenuInflater;
@@ -162,7 +163,6 @@ public class MainActivity extends AppCompatActivity
         if (drawer.isDrawerOpen(GravityCompat.START)) {
             drawer.closeDrawer(GravityCompat.START);
         } else {
-            getFragmentManager().popBackStack();
             super.onBackPressed();
         }
     }
@@ -184,8 +184,10 @@ public class MainActivity extends AppCompatActivity
         //noinspection SimplifiableIfStatement
         switch (id) {
             case R.id.action_settings:
+                int count = getFragmentManager().getBackStackEntryCount();
                 getFragmentManager().beginTransaction()
-                        .add(new SettingsFragment(), "settings")
+                        .replace(R.id.app_bar, new SettingsFragment())
+                        .addToBackStack(String.valueOf(count))
                         .commit();
                 return true;
             case R.id.delete_category:
@@ -195,6 +197,7 @@ public class MainActivity extends AppCompatActivity
                 tdHelper.deleteCategory(selectedCategoryId);
                 // Reset selected
                 selectedCategoryId = tdHelper.getNextCategoryId();
+                setTitle(tdHelper.getCategoryName(selectedCategoryId));
                 // Update displays
                 updateMenuUI();
                 updateBodyUI();
