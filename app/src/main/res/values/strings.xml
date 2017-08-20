@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">TODO List</string>
+
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+
+    <string name="action_settings">Settings</string>
+    <string name="delete_category">Delete Category</string>
+</resources>
