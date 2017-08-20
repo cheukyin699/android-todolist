@@ -10,7 +10,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:theme="@style/AppTheme.AppBarOverlay">
+        android:theme="@style/AppTheme.AppBarOverlay" >
 
         <android.support.v7.widget.Toolbar
             android:id="@+id/toolbar"
@@ -22,6 +22,7 @@
         <ListView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:theme="@style/AppTheme"
             android:id="@+id/todoList">
         </ListView>
 

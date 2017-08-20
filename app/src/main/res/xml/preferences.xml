@@ -6,5 +6,5 @@
         android:entries="@android:array/emailAddressTypes"
         android:entryValues="@array/Theme"
         android:key="multi_select_list_preference_1"
-        android:title="Multi select list preference" />
+        android:title="Theme" />
 </PreferenceScreen>
