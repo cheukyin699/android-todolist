@@ -2,7 +2,7 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
     <PreferenceCategory
-        android:title="Looka and Feel">
+        android:title="Look and Feel">
         <ListPreference
             android:defaultValue="@string/theme_default"
             android:entries="@array/theme_readable"
