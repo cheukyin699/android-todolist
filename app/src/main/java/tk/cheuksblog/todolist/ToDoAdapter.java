@@ -27,7 +27,7 @@ public class ToDoAdapter extends ArrayAdapter<ToDoItem> implements View.OnCreate
 
     }
 
-    public class ToDoView {
+    class ToDoView {
         public int taskid;
         private CheckBox todoDone;
         private TextView todoDescription;

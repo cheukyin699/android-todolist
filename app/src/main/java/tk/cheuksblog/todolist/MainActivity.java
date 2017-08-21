@@ -1,26 +1,24 @@
 package tk.cheuksblog.todolist;
 
+import android.app.FragmentTransaction;
 import android.content.DialogInterface;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
-import android.support.v4.app.FragmentTransaction;
-import android.support.v7.app.AlertDialog;
-import android.view.ContextMenu;
-import android.view.MenuInflater;
-import android.view.View;
+import android.preference.PreferenceManager;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.AdapterView;
 import android.widget.CheckBox;
 import android.widget.EditText;
-import android.widget.ListView;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -32,7 +30,8 @@ public class MainActivity extends AppCompatActivity
     private ToDoAdapter taskList;
     private ArrayList<ToDoItem> tasks;
     private NavigationView navigationView;
-    private ListView todoList;
+    private ToDoListFragment todoList;
+    private SettingsFragment settingsFragment;
     private int selectedCategoryId;
 
     @Override
@@ -43,13 +42,17 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // Restore the preferences
+        restorePreferences();
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
+        settingsFragment = new SettingsFragment();
+        todoList = new ToDoListFragment();
+        todoList.setAddListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 final EditText edit = new EditText(MainActivity.this);
@@ -71,6 +74,10 @@ public class MainActivity extends AppCompatActivity
                 dlg.show();
             }
         });
+        getFragmentManager().beginTransaction()
+                .add(R.id.body, todoList)
+                .addToBackStack(null)
+                .commit();
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
@@ -87,24 +94,23 @@ public class MainActivity extends AppCompatActivity
         selectedCategoryId = tdHelper.getNextCategoryId();
         setTitle(tdHelper.getCategoryName(selectedCategoryId));
 
-        todoList = (ListView) findViewById(R.id.todoList);
-        registerForContextMenu(todoList);
-
         // Get the tasks
         updateBodyUI();
+
     }
 
-    @Override
-    public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
-        super.onCreateContextMenu(menu, v, menuInfo);
+    public void restorePreferences() {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
 
-        switch (v.getId()) {
-            case R.id.todoList:
-                MenuInflater inf = getMenuInflater();
-                inf.inflate(R.menu.delete_contextmenu, menu);
-                break;
-            default:
-                break;
+        String theme = preferences.getString("theme",
+                getResources().getString(R.string.theme_default));
+
+        if (theme.equals("light")) {
+            setTheme(R.style.AppTheme_Light_NoActionBar);
+            getApplication().setTheme(R.style.AppTheme_Light);
+        } else if (theme.equals("dark")) {
+            setTheme(R.style.AppTheme_Dark_NoActionBar);
+            getApplication().setTheme(R.style.AppTheme_Dark);
         }
     }
 
@@ -114,7 +120,7 @@ public class MainActivity extends AppCompatActivity
 
         switch (item.getItemId()) {
             case R.id.delete_item:
-                View v = todoList.getChildAt(info.position);
+                View v = todoList.getListView().getChildAt(info.position);
                 ToDoAdapter.ToDoView tItem = (ToDoAdapter.ToDoView) v.getTag();
                 tdHelper.deleteTask(tItem.taskid);
 
@@ -154,7 +160,7 @@ public class MainActivity extends AppCompatActivity
         }
 
         // Set ListView adapter
-        todoList.setAdapter(taskList);
+        todoList.setListAdapter(taskList);
     }
 
     @Override
@@ -181,14 +187,15 @@ public class MainActivity extends AppCompatActivity
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
         switch (id) {
             case R.id.action_settings:
-                int count = getFragmentManager().getBackStackEntryCount();
-                getFragmentManager().beginTransaction()
-                        .replace(R.id.app_bar, new SettingsFragment())
-                        .addToBackStack(String.valueOf(count))
-                        .commit();
+                if (getFragmentManager().findFragmentByTag(SettingsFragment.TAG) == null) {
+                    getFragmentManager().beginTransaction()
+                            .replace(R.id.body, settingsFragment, SettingsFragment.TAG)
+                            .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
+                            .addToBackStack(null)
+                            .commit();
+                }
                 return true;
             case R.id.delete_category:
                 // If there is only 1 existing category, don't delete it

@@ -6,4 +6,6 @@
 
     <string name="action_settings">Settings</string>
     <string name="delete_category">Delete Category</string>
+
+    <string name="theme_default">light</string>
 </resources>
