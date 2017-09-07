@@ -5,33 +5,34 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.os.Build;
-import android.support.design.widget.Snackbar;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-
-/**
- * Created by cheukyin699 on 8/15/17.
- */
-
-public class ToDoOpenHelper extends SQLiteOpenHelper {
-    public static final String TODO_TABLE_NAME = "todo";
-    public static final String CATEGORY_TABLE_NAME = "categories";
+class ToDoOpenHelper extends SQLiteOpenHelper {
+    private static final String TODO_TABLE_NAME = "todo";
+    private static final String CATEGORY_TABLE_NAME = "categories";
     private static final int TODO_VERSION = 1;
+
+    private static final String TODO_FIELD_ID = "id";
+    private static final String TODO_FIELD_CID = "category_id";
+    private static final String TODO_FIELD_DONE = "done";
+    private static final String TODO_FIELD_DESC = "description";
+    private static final String CAT_FIELD_ID = "id";
+    private static final String CAT_FIELD_NAME = "name";
+
     private static final String TODO_TABLE_CREATE =
             "CREATE TABLE " + TODO_TABLE_NAME + " (" +
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT," +
-                    "category_id INTEGER," +
-                    "done BOOLEAN," +
-                    "description TEXT NOT NULL," +
-                    "FOREIGN KEY(category_id) REFERENCES " + CATEGORY_TABLE_NAME + "(id)" +
+                    TODO_FIELD_ID + " INTEGER PRIMARY KEY AUTOINCREMENT," +
+                    TODO_FIELD_CID + " INTEGER," +
+                    TODO_FIELD_DONE + " BOOLEAN," +
+                    TODO_FIELD_DESC + " TEXT NOT NULL," +
+                    "FOREIGN KEY(" + TODO_FIELD_CID + ") REFERENCES " + CATEGORY_TABLE_NAME + "(" + TODO_FIELD_ID + ")" +
             ");";
     private static final String CATEGORY_TABLE_CREATE =
             "CREATE TABLE " + CATEGORY_TABLE_NAME + "(" +
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT," +
-                    "name TEXT" +
+                    CAT_FIELD_ID + " INTEGER PRIMARY KEY AUTOINCREMENT," +
+                    CAT_FIELD_NAME + " TEXT" +
             ");";
+
+    private int numCategories;
 
     ToDoOpenHelper(Context c) {
         super(c, TODO_TABLE_NAME, null, TODO_VERSION);
@@ -48,8 +49,9 @@ public class ToDoOpenHelper extends SQLiteOpenHelper {
 
     private void createDefaults(SQLiteDatabase db) {
         ContentValues defaultCategories = new ContentValues();
-        defaultCategories.put("name", "Default");
+        defaultCategories.put(CAT_FIELD_NAME, "Default");
         db.insert(CATEGORY_TABLE_NAME, null, defaultCategories);
+        numCategories = 1;
     }
 
     @Override
@@ -65,65 +67,58 @@ public class ToDoOpenHelper extends SQLiteOpenHelper {
         }
     }
 
-    public void updateTask(int taskid, boolean done) {
+    void updateTask(int taskid, boolean done) {
         ContentValues v = new ContentValues();
-        v.put("done", done);
-        getWritableDatabase().update(TODO_TABLE_NAME, v, "id = " + Integer.toString(taskid), null);
+        v.put(TODO_FIELD_DONE, done);
+        getWritableDatabase().update(TODO_TABLE_NAME, v, TODO_FIELD_ID + " = " + Integer.toString(taskid), null);
     }
 
-    public HashMap<Integer, String> getCategories() {
-        HashMap<Integer, String> categories = new HashMap<Integer, String>();
-
-        Cursor c = getReadableDatabase().query(CATEGORY_TABLE_NAME, null, null, null, null, null, "id");
-        while (c.moveToNext()) {
-            categories.put(c.getInt(0), c.getString(1));
-        }
-        c.close();
-
-        return categories;
-    }
-
-    public Cursor getTasks(int id) {
-        Cursor c = getReadableDatabase().query(
-                TODO_TABLE_NAME, null, "category_id = " + Integer.toString(id), null, null, null, "done DESC"
-        );
-
+    Cursor getCategories() {
+        Cursor c = getReadableDatabase().query(CATEGORY_TABLE_NAME, null, null, null, null, null, CAT_FIELD_ID);
+        numCategories = c.getCount();
         return c;
     }
 
-    public void deleteTask(int id) {
-        getWritableDatabase().delete(TODO_TABLE_NAME, "id = " + Integer.toString(id), null);
+    Cursor getTasks(int id) {
+        return getReadableDatabase().query(
+                TODO_TABLE_NAME, null, CAT_FIELD_ID + " = " + Integer.toString(id), null, null, null, TODO_FIELD_DONE + " DESC"
+        );
     }
 
-    public void insertCategory(String name) {
+    void deleteTask(int id) {
+        getWritableDatabase().delete(TODO_TABLE_NAME, TODO_FIELD_ID + " = " + Integer.toString(id), null);
+    }
+
+    void insertCategory(String name) {
         if (name.isEmpty()) return;
 
         ContentValues v = new ContentValues();
-        v.put("name", name);
+        v.put(CAT_FIELD_NAME, name);
         getWritableDatabase().insert(CATEGORY_TABLE_NAME, null, v);
+
+        numCategories++;
     }
 
-    public void deleteCategory(int id) {
+    void deleteCategory(int id) {
         SQLiteDatabase db = getWritableDatabase();
 
         db.beginTransaction();
         try {
-            db.delete(CATEGORY_TABLE_NAME, "id = " + Integer.toString(id), null);
-            db.delete(TODO_TABLE_NAME, "category_id = " + Integer.toString(id), null);
+            db.delete(CATEGORY_TABLE_NAME, CAT_FIELD_ID + " = " + Integer.toString(id), null);
+            db.delete(TODO_TABLE_NAME, TODO_FIELD_CID + " = " + Integer.toString(id), null);
             db.setTransactionSuccessful();
+
+            numCategories--;
         } finally {
             db.endTransaction();
         }
     }
 
-    public int getNumCategories() {
-        Cursor c = getReadableDatabase().query(CATEGORY_TABLE_NAME, null, null, null, null, null, null);
-        int ret = c.getCount();
-        c.close();
-        return ret;
+    int getNumCategories() {
+        return numCategories;
     }
 
-    public int getNextCategoryId() {
+    int getNextCategoryId() {
         Cursor c = getReadableDatabase().query(CATEGORY_TABLE_NAME, null, null, null, null, null, null);
         c.moveToNext();
         int id = c.getInt(0);
@@ -131,20 +126,20 @@ public class ToDoOpenHelper extends SQLiteOpenHelper {
         return id;
     }
 
-    public String getCategoryName(int id) {
-        Cursor c = getReadableDatabase().query(CATEGORY_TABLE_NAME, null, "id = " + Integer.toString(id), null, null, null, null);
+    String getCategoryName(int id) {
+        Cursor c = getReadableDatabase().query(CATEGORY_TABLE_NAME, null, CAT_FIELD_ID + " = " + Integer.toString(id), null, null, null, null);
         c.moveToNext();
         String name = c.getString(1);
         c.close();
         return name;
     }
 
-    public void insertTask(ToDoItem item) {
-        if (item.isValid()) {
+    void insertTask(ToDoItem item) {
+        if (!item.description.isEmpty()) {
             ContentValues v = new ContentValues();
-            v.put("category_id", item.category);
-            v.put("done", item.done);
-            v.put("description", item.description);
+            v.put(TODO_FIELD_CID, item.category);
+            v.put(TODO_FIELD_DONE, item.done);
+            v.put(TODO_FIELD_DESC, item.description);
 
             getWritableDatabase().insert(TODO_TABLE_NAME, null, v);
         }

@@ -1,8 +1,6 @@
 package tk.cheuksblog.todolist;
 
 import android.content.Context;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.view.ContextMenu;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -13,12 +11,8 @@ import android.widget.TextView;
 
 import java.util.ArrayList;
 
-/**
- * Created by cheukyin699 on 8/16/17.
- */
-
-public class ToDoAdapter extends ArrayAdapter<ToDoItem> implements View.OnCreateContextMenuListener {
-    public ToDoAdapter(Context ctx, int res, ArrayList<ToDoItem> list) {
+class ToDoAdapter extends ArrayAdapter<ToDoItem> implements View.OnCreateContextMenuListener {
+    ToDoAdapter(Context ctx, int res, ArrayList<ToDoItem> list) {
         super(ctx, res, list);
     }
 
@@ -28,13 +22,13 @@ public class ToDoAdapter extends ArrayAdapter<ToDoItem> implements View.OnCreate
     }
 
     class ToDoView {
-        public int taskid;
+        int taskid;
         private CheckBox todoDone;
         private TextView todoDescription;
     }
 
     @Override
-    public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
+    public View getView(int position, View convertView, ViewGroup parent) {
         ToDoView v = new ToDoView();
         if (convertView == null) {
             convertView = LayoutInflater.from(getContext())

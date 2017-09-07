@@ -2,7 +2,6 @@ package tk.cheuksblog.todolist;
 
 import android.app.ListFragment;
 import android.os.Bundle;
-import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.view.ContextMenu;
 import android.view.LayoutInflater;

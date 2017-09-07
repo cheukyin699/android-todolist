@@ -1,6 +1,5 @@
 package tk.cheuksblog.todolist;
 
-import android.app.FragmentTransaction;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.database.Cursor;
@@ -21,14 +20,12 @@ import android.widget.CheckBox;
 import android.widget.EditText;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
 
     private ToDoOpenHelper tdHelper;
     private ToDoAdapter taskList;
-    private ArrayList<ToDoItem> tasks;
     private NavigationView navigationView;
     private ToDoListFragment todoList;
     private SettingsFragment settingsFragment;
@@ -52,41 +49,34 @@ public class MainActivity extends AppCompatActivity
 
         settingsFragment = new SettingsFragment();
         todoList = new ToDoListFragment();
+        tdHelper = new ToDoOpenHelper(this.getApplicationContext());
+        navigationView = (NavigationView) findViewById(R.id.nav_view);
+        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         todoList.setAddListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 final EditText edit = new EditText(MainActivity.this);
-                AlertDialog dlg = new AlertDialog.Builder(MainActivity.this)
-                        .setTitle("Add Task")
-                        .setView(edit)
-                        .setPositiveButton("Add", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface di, int which) {
-                                ToDoItem item = new ToDoItem(selectedCategoryId, false, String.valueOf(edit.getText()));
+                showAlertDialog("Add Task", edit, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface di, int which) {
+                            ToDoItem item = new ToDoItem(selectedCategoryId, false, String.valueOf(edit.getText()));
 
-                                tdHelper.insertTask(item);
+                            tdHelper.insertTask(item);
 
-                                updateBodyUI();
-                            }
-                        })
-                        .setNegativeButton("Cancel", null)
-                        .create();
-                dlg.show();
+                            updateBodyUI();
+                        }
+                });
             }
         });
         getFragmentManager().beginTransaction()
                 .add(R.id.body, todoList)
-                .addToBackStack(null)
                 .commit();
 
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
-        drawer.setDrawerListener(toggle);
+        drawer.addDrawerListener(toggle);
         toggle.syncState();
 
-        tdHelper = new ToDoOpenHelper(this.getApplicationContext());
-        navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
         updateMenuUI();
 
@@ -96,7 +86,6 @@ public class MainActivity extends AppCompatActivity
 
         // Get the tasks
         updateBodyUI();
-
     }
 
     public void restorePreferences() {
@@ -134,18 +123,20 @@ public class MainActivity extends AppCompatActivity
     private void updateMenuUI() {
         // Append categories to navigation
         Menu menu = navigationView.getMenu();
-        HashMap<Integer, String> categories = tdHelper.getCategories();
+        Cursor c = tdHelper.getCategories();
 
         menu.removeGroup(R.id.category_group);
 
-        for (Integer id : categories.keySet()) {
-            MenuItem item = menu.add(R.id.category_group, id, Menu.NONE, categories.get(id));
+        while (c.moveToNext()) {
+            menu.add(R.id.category_group, c.getInt(0), Menu.NONE, c.getString(1));
         }
+
+        c.close();
     }
 
     private void updateBodyUI() {
         Cursor c = tdHelper.getTasks(selectedCategoryId);
-        tasks = new ArrayList<>();
+        ArrayList<ToDoItem> tasks = new ArrayList<>();
         while (c.moveToNext()) {
             tasks.add(new ToDoItem(c));
         }
@@ -192,7 +183,6 @@ public class MainActivity extends AppCompatActivity
                 if (getFragmentManager().findFragmentByTag(SettingsFragment.TAG) == null) {
                     getFragmentManager().beginTransaction()
                             .replace(R.id.body, settingsFragment, SettingsFragment.TAG)
-                            .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
                             .addToBackStack(null)
                             .commit();
                 }
@@ -226,37 +216,43 @@ public class MainActivity extends AppCompatActivity
         tdHelper.updateTask(id, checked);
     }
 
+    private void showAlertDialog(String title, EditText edit, DialogInterface.OnClickListener listener) {
+        AlertDialog dlg = new AlertDialog.Builder(MainActivity.this)
+                .setTitle(title)
+                .setView(edit)
+                .setPositiveButton("Add", listener)
+                .setNegativeButton("Cancel", null)
+                .create();
+        dlg.show();
+    }
+
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
         // Handle navigation view item clicks here.
         int id = item.getItemId();
 
         if (id == R.id.add_category) {
-            final EditText edit = new EditText(MainActivity.this);
-            AlertDialog dlg = new AlertDialog.Builder(MainActivity.this)
-                    .setTitle("Add Category")
-                    .setView(edit)
-                    .setPositiveButton("Add", new DialogInterface.OnClickListener() {
+            // Adding a category
+            final EditText edit = new EditText(this);
+            showAlertDialog("Add Category", edit, new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface di, int which) {
-                            tdHelper.insertCategory(String.valueOf(edit.getText()));
+                    tdHelper.insertCategory(String.valueOf(edit.getText()));
 
-                            updateMenuUI();
+                    updateMenuUI();
                         }
-                    })
-                    .setNegativeButton("Cancel", null)
-                    .create();
-            dlg.show();
+            });
 
             return true;
+        } else {
+            // Selecting on a category
+            selectedCategoryId = id;
+            setTitle(tdHelper.getCategoryName(selectedCategoryId));
+            updateBodyUI();
+
+            DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+            drawer.closeDrawer(GravityCompat.START);
+            return true;
         }
-
-        selectedCategoryId = id;
-        setTitle(tdHelper.getCategoryName(selectedCategoryId));
-        updateBodyUI();
-
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        drawer.closeDrawer(GravityCompat.START);
-        return true;
     }
 }
